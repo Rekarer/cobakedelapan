@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pencatat Keterlambatan Murid (Pabbly Split)</title>
+    <!-- Load Tailwind CSS dari CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Pengaturan font dan latar belakang global */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0fdf4; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        button {
+            transition: all 0.15s ease-in-out;
+            transform: translateZ(0);
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <div class="w-full max-w-lg bg-white shadow-2xl rounded-3xl p-6 md:p-8 space-y-6 border border-green-200 transform transition-all duration-300 hover:shadow-green-300/50">
+        <h1 class="text-3xl font-extrabold text-green-700 text-center">⏱️ Pencatat Keterlambatan Sekolah (v2)</h1>
+        <p class="text-center text-sm text-gray-500">Ucapkan nama, pilih kelas, dan data akan dikirim dalam format **STRING TUNGGAL** untuk dipisah di Pabbly.</p>
+
+        <!-- Status & Output Section -->
+        <div class="bg-green-50 border-2 border-green-300/50 rounded-xl p-4 space-y-3 shadow-inner">
+            <div id="status" class="text-lg font-bold text-green-700">Status: Belum dimulai</div>
+            <div id="message" class="text-sm font-medium min-h-[1.25rem]"></div>
+            
+            <div class="bg-white p-4 rounded-lg border border-gray-200 min-h-[4rem] whitespace-pre-wrap shadow-sm">
+                <p class="text-gray-400 text-xs mb-1 font-semibold">Nama Murid (Hasil Ucapan):</p>
+                <p id="output" class="text-gray-800 text-base font-medium">Tekan tombol 'Ucapkan Nama Murid'.</p>
+            </div>
+        </div>
+
+        <!-- Class Dropdown -->
+        <div>
+            <label for="classDropdown" class="block text-sm font-medium text-gray-700 mb-2">Pilih Kelas Murid:</label>
+            <select id="classDropdown" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-green-500 focus:border-green-500 shadow-sm text-gray-700">
+                <option value="" disabled selected>--- Pilih Kelas ---</option>
+                <!-- Tambahkan semua kelas yang kamu butuhkan di sini -->
+                <option value="X MIPA 1">X MIPA 1</option>
+                <option value="X MIPA 2">X MIPA 2</option>
+                <option value="X IPS 1">X IPS 1</option>
+                <option value="XI MIPA 3">XI MIPA 3</option>
+                <option value="XI IPS 2">XI IPS 2</option>
+                <option value="XII MIPA 1">XII MIPA 1</option>
+                <option value="XII IPS 4">XII IPS 4</option>
+            </select>
+        </div>
+        
+        <!-- Control Buttons -->
+        <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+            <button id="startBtn" class="flex-1 px-6 py-3 bg-green-600 text-white font-extrabold rounded-xl shadow-lg shadow-green-400/50 hover:bg-green-700 disabled:opacity-50 disabled:shadow-none">
+                1. Ucapkan Nama Murid
+            </button>
+            <button id="stopBtn" disabled class="flex-1 px-6 py-3 bg-red-600 text-white font-extrabold rounded-xl shadow-lg shadow-red-400/50 hover:bg-red-700 disabled:opacity-50 disabled:shadow-none">
+                Stop
+            </button>
+        </div>
+        <button id="sendBtn" disabled class="w-full px-6 py-3 bg-blue-600 text-white font-extrabold rounded-xl shadow-xl shadow-blue-400/50 hover:bg-blue-700 disabled:opacity-50 disabled:shadow-none">
+            2. Kirim Data Ke Pabbly Connect
+        </button>
+
+    </div>
+
+    <script type="text/javascript">
+        // Global Constants and Setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        const startBtn = document.getElementById("startBtn");
+        const stopBtn = document.getElementById("stopBtn");
+        const sendBtn = document.getElementById("sendBtn");
+        const statusEl = document.getElementById("status");
+        const outputEl = document.getElementById("output");
+        const messageEl = document.getElementById("message");
+        const classDropdown = document.getElementById("classDropdown");
+
+        // ***************************************************************
+        // GANTI URL ini dengan URL Webhook Pabbly Connect Anda yang sebenarnya
+        const PABBLY_WEBHOOK_URL = 'https://your.pabbly.webhook.url/replace/me'; 
+        // ***************************************************************
+
+        // Telegram Constants (tetap dipertahankan dari kode awal)
+        const TELEGRAM_TOKEN = "8094088254:AAHhx11hS3pBMyWrqjxKrd3oeRbA3joeB5c";
+        const TELEGRAM_CHAT_ID = "1389280044";
+
+        let rec;
+        let lastTranscript = "";
+
+        // Fungsi untuk menampilkan pesan temporer di UI
+        function showMessage(text, isError = true) {
+            messageEl.textContent = text;
+            messageEl.classList.remove('text-red-600', 'text-green-600', 'text-blue-600');
+            messageEl.classList.add(isError ? 'text-red-600' : (isError === false ? 'text-green-600' : 'text-blue-600'));
+            setTimeout(() => {
+                messageEl.textContent = "";
+            }, 5000);
+        }
+
+        if (!SpeechRecognition) {
+            outputEl.textContent = "Browser Anda tidak mendukung Web Speech API.";
+            showMessage("Browser Anda tidak mendukung Web Speech API.", true);
+        } else {
+            rec = new SpeechRecognition();
+            rec.lang = "id-ID";
+            rec.interimResults = false;
+            rec.continuous = false; 
+
+            rec.onstart = () => {
+                statusEl.textContent = "Status: 🟢 Mendengarkan Nama Murid...";
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                sendBtn.disabled = true;
+                messageEl.textContent = "";
+            };
+
+            rec.onend = () => {
+                statusEl.textContent = "Status: 🟡 Idle. Perekaman selesai.";
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            };
+
+            rec.onerror = (event) => {
+                console.error("Speech Recognition Error:", event.error);
+                statusEl.textContent = "Status: 🔴 Error (" + event.error + ")";
+                showMessage("Error pengenalan suara: " + event.error, true);
+            }
+
+            rec.onresult = (event) => {
+                const result = event.results[event.results.length - 1];
+                if (result.isFinal) {
+                    const text = result[0].transcript;
+                    lastTranscript = text.trim().toUpperCase(); // Simpan dan ubah ke huruf besar
+                    outputEl.textContent = lastTranscript;
+                    sendBtn.disabled = false; 
+                    statusEl.textContent = "Status: ✅ Nama didapat. Pilih Kelas dan Kirim.";
+                }
+            };
+
+            startBtn.onclick = () => {
+                try { 
+                    rec.start(); 
+                    lastTranscript = "";
+                    outputEl.textContent = "Sedang mendengarkan...";
+                    sendBtn.disabled = true;
+                } catch (e) { 
+                    console.error("Gagal memulai perekaman:", e);
+                    showMessage("Gagal memulai perekaman. Mungkin sudah berjalan?", true);
+                }
+            };
+
+            stopBtn.onclick = () => rec.stop();
+        }
+
+        // === FUNGSI KIRIM ===
+
+        // Mengambil waktu dan tanggal saat ini
+        function getCurrentDateTime() {
+            const now = new Date();
+            // Format waktu (e.g., 06:11:45)
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            const time = now.toLocaleTimeString('id-ID', timeOptions); 
+            
+            // Format tanggal (e.g., 25/11/2025)
+            const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
+            const date = now.toLocaleDateString('id-ID', dateOptions); 
+            
+            return { time, date };
+        }
+
+        // FUNGSI UTAMA: Mengirim ke Webhook Pabbly
+        sendBtn.onclick = () => {
+            const selectedClass = classDropdown.value;
+            
+            if (!lastTranscript) {
+                return showMessage("Belum ada Nama Murid yang diucapkan!", true);
+            }
+            if (!selectedClass) {
+                return showMessage("Harap pilih Kelas Murid terlebih dahulu!", true);
+            }
+            
+            sendBtn.disabled = true;
+            statusEl.textContent = "Status: 📤 Mengirim data ke Pabbly...";
+            
+            // Kirim ke Pabbly Webhook
+            sendDataToPabblyWebhook(lastTranscript, selectedClass)
+                .finally(() => {
+                    sendBtn.disabled = false;
+                    if (!statusEl.textContent.includes('Error')) {
+                        // Jika sukses, reset untuk input berikutnya
+                        lastTranscript = "";
+                        outputEl.textContent = "Nama berhasil dicatat. Silakan ucapkan nama murid berikutnya.";
+                        statusEl.textContent = "Status: ✅ Data terkirim. Siap rekam ulang.";
+                        classDropdown.value = ""; // Kosongkan pilihan kelas
+                    }
+                });
+
+            // Kirim ke Telegram (Opsional)
+            sendToTelegram(`Pencatatan Keterlambatan:\nNama: ${lastTranscript}\nKelas: ${selectedClass}`);
+        };
+
+        function sendToTelegram(text) {
+            const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+
+            fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    chat_id: TELEGRAM_CHAT_ID,
+                    text: text
+                })
+            })
+            .then(res => console.log("Telegram response:", res.status))
+            .catch(err => console.error("Telegram upload failed:", err));
+        }
+
+        // --- Pabbly Webhook Sender ---
+        async function sendDataToPabblyWebhook(name, studentClass) {
+            const dateTime = getCurrentDateTime();
+            
+            // =========================================================
+            // FUNGSI UTAMA: MEMBUAT STRING TUNGGAL DENGAN PEMISAH |
+            // Format yang dikirim: WAKTU|NAMA|KELAS|TANGGAL
+            // =========================================================
+            const rawDataString = `${dateTime.time}|${name}|${studentClass}|${dateTime.date}`;
+            
+            // Kirim string tunggal ini dalam payload JSON agar Pabbly mudah menangkapnya.
+            const payload = { 
+                // Nama field ini (raw_data) akan kamu gunakan di langkah Pabbly
+                raw_data: rawDataString, 
+            };
+
+            if (PABBLY_WEBHOOK_URL.includes('replace/me')) {
+                console.error('ERROR: Ganti PABBLY_WEBHOOK_URL dengan URL Anda yang sebenarnya.');
+                showMessage('GAGAL KIRIM: Harap ganti placeholder PABBLY_WEBHOOK_URL di kode!', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(PABBLY_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Non-OK response from Pabbly: ${response.status} - ${errorText.substring(0, 100)}...`);
+                }
+                
+                const result = await response.json();
+                console.log('Data sukses dikirim ke Pabbly Connect!', payload, result);
+                showMessage('Data Keterlambatan sukses dicatat!', false);
+            } catch (error) {
+                console.error('Gagal mengirim data ke Pabbly Connect:', error);
+                showMessage(`Gagal mengirim data: ${error.message}`, true);
+            }
+        }
+    </script>
+</body>
+</html>
