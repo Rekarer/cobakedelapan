@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pencatat Keterlambatan Murid (Pabbly Split)</title>
+    <title>Pencatat Keterlambatan Murid Melalui Telegram</title>
     <!-- Load Tailwind CSS dari CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -25,8 +25,8 @@
 <body class="p-4">
 
     <div class="w-full max-w-lg bg-white shadow-2xl rounded-3xl p-6 md:p-8 space-y-6 border border-green-200 transform transition-all duration-300 hover:shadow-green-300/50">
-        <h1 class="text-3xl font-extrabold text-green-700 text-center">⏱️ Pencatat Keterlambatan Sekolah (v2)</h1>
-        <p class="text-center text-sm text-gray-500">Ucapkan nama, pilih kelas, dan data akan dikirim dalam format **STRING TUNGGAL** untuk dipisah di Pabbly.</p>
+        <h1 class="text-3xl font-extrabold text-green-700 text-center">Pencatat Keterlambatan Sekolah</h1>
+        <p class="text-center text-sm text-gray-500">Ucapkan nama, pilih kelas, dan data akan dikirim ke telegram.</p>
 
         <!-- Status & Output Section -->
         <div class="bg-green-50 border-2 border-green-300/50 rounded-xl p-4 space-y-3 shadow-inner">
@@ -45,13 +45,15 @@
             <select id="classDropdown" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-green-500 focus:border-green-500 shadow-sm text-gray-700">
                 <option value="" disabled selected>--- Pilih Kelas ---</option>
                 <!-- Tambahkan semua kelas yang kamu butuhkan di sini -->
-                <option value="X MIPA 1">X MIPA 1</option>
-                <option value="X MIPA 2">X MIPA 2</option>
-                <option value="X IPS 1">X IPS 1</option>
-                <option value="XI MIPA 3">XI MIPA 3</option>
-                <option value="XI IPS 2">XI IPS 2</option>
-                <option value="XII MIPA 1">XII MIPA 1</option>
-                <option value="XII IPS 4">XII IPS 4</option>
+                <option value="XI-A">XI-A</option>
+                <option value="XI-B">XI-B</option>
+                <option value="XI-C">XI-C</option>
+                <option value="XI-D">XI-D</option>
+                <option value="XI-E">XI-E</option>
+                <option value="XI-F">XI-F</option>
+                <option value="XI-G">XI-G</option>
+                <option value="XI-H">XI-H</option>
+                <option value="XI-I">XI-I</option>
             </select>
         </div>
         
@@ -65,7 +67,7 @@
             </button>
         </div>
         <button id="sendBtn" disabled class="w-full px-6 py-3 bg-blue-600 text-white font-extrabold rounded-xl shadow-xl shadow-blue-400/50 hover:bg-blue-700 disabled:opacity-50 disabled:shadow-none">
-            2. Kirim Data Ke Pabbly Connect
+            2. Kirim Data Ke Telegram
         </button>
 
     </div>
@@ -267,3 +269,4 @@
 </body>
 
 </html>
+
